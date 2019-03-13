@@ -1,3 +1,3 @@
-# RL Race Car
+# RL Mountain Car
 This repository is mainly for learning about reinforcement learning using the
-RaceCar environment from the OpenAI Gym.
+MountainCarContinuous-v0 environment from the OpenAI Gym.
