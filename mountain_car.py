@@ -42,7 +42,8 @@ class DQN(nn.Module):
         if random.random() > epsilon:
             return torch.tensor([[random.random()]])
         else:
-            return self.forward(state)
+            with torch.no_grad():
+                return self.forward(state)
 
 
 class ReplayMemory(object):
@@ -88,7 +89,7 @@ def optimize_models(replay_memory, policy, target, batch_size):
     :param target:
     :return:
     """
-    if len(batch_size) > len(replay_memory):
+    if batch_size > len(replay_memory):
         batch_size = len(replay_memory)
 
     # Sample from the memory
@@ -151,7 +152,7 @@ for ep in range(n_episodes):
     state, _, _, _ = env.step(env.action_space.sample())
     state = Variable(torch.from_numpy(state).type(torch.FloatTensor)).unsqueeze(0)
 
-
+    print(ep)
     for t in count():
         # Select and perform an action
         action = policy.choose_action(state)
@@ -174,11 +175,9 @@ for ep in range(n_episodes):
         state = next_state
 
         # Optimize the policy and target networks
-        optimize_models(replay_memory, policy, target)
-
+        optimize_models(replay_memory, policy, target, batch_size=batch_size)
         if done:
-            episode_rewards.append(reward)
             break
     # Update the target network, copying all weights and biases in DQN
-    if i_episode % TARGET_UPDATE == 0:
-        target_net.load_state_dict(policy_net.state_dict())
+    if ep % 5 == 0:
+        target.load_state_dict(policy.state_dict())
