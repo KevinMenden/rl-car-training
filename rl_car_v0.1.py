@@ -196,7 +196,8 @@ for i_episode in range(num_episodes):
         print(t)
         # Select and perform an action
         action = select_action(state)
-        _, reward, done, _ = env.step(action)
+        pos, reward, done, _ = env.step(action)
+        reward = pos[0] + 0.5
         reward = torch.tensor([reward])
 
         # Observe new state
