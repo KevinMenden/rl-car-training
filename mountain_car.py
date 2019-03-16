@@ -61,7 +61,7 @@ class ReplayMemory(object):
         :param experience:
         """
         # if memory full, start filling up from oldest memory
-        if self.position == self.capacity - 1:
+        if self.position == self.capacity:
             self.position = 0
         if len(self.memory) < self.capacity:
             self.memory.append(None)
@@ -89,8 +89,8 @@ def optimize_models(replay_memory, policy, target, batch_size):
     :param target:
     :return:
     """
-    if batch_size > len(replay_memory):
-        batch_size = len(replay_memory)
+    if len(replay_memory) < batch_size:
+        return
 
     # Sample from the memory
     memories = replay_memory.sample(batch_size)
@@ -100,15 +100,18 @@ def optimize_models(replay_memory, policy, target, batch_size):
 
     state_batch = torch.cat(batch.state)
     reward_batch = torch.cat(batch.reward)
-    next_state_batch = torch.cat(batch.next_state)
 
     # Compute the Q values
     state_action_values = policy(state_batch)
 
-    # Compute the V values
-    next_state_values = target(next_state_batch)
-    # Compute expected Q values
-    expected_q_vals = next_state_values * gamma + reward_batch
+    # Calculate expected q values
+    non_final_mask = torch.tensor(tuple(map(lambda s: s is not None, batch.next_state)), dtype=torch.uint8)
+    non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
+    next_state_values = torch.zeros(batch_size)
+    next_state_values[non_final_mask] = target(non_final_next_states).max(1)[0].detach()
+    # Compute the expected Q values
+    expected_q_vals = (next_state_values * gamma) + reward_batch
+
 
     # Compute Huber loss
     loss = F.smooth_l1_loss(state_action_values, expected_q_vals.unsqueeze(1))
@@ -137,7 +140,7 @@ env = gym.make("MountainCarContinuous-v0")
 
 # Parameters
 batch_size = 64
-epsilon = 0.2
+epsilon = 0.4
 n_episodes = 50
 gamma = 0.999
 memory_size = 10000
