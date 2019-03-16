@@ -72,4 +72,4 @@ net = DQN()
 screen = get_screen()
 env.close()
 
-net.forward(screen)
+res = net(screen)
